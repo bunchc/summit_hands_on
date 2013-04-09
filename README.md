@@ -1,4 +1,6 @@
-OpenStackCookbook by K. Jackson and C. Bunch<br>
+Hands on with Quantum and Cinder by C. Bunch<br>
+Derived from OpenStackCookbook by K. Jackson<br>
+https://github.com/uksysadmin/OpenStackCookBook<br>
 ============================================<br>
 <br>
 Resources for "Hands on with Quantum and Cinder"<br>
