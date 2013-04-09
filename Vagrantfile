@@ -5,7 +5,8 @@ nodes = {
     'proxy'	=> [1, 110],
     'controller'  => [1, 200],
     'compute'  => [1, 201],
-    'swift'   => [1, 210],
+    'cinder'   => [1, 202],
+    'quantum'  => [1, 203],
 }
 
 Vagrant.configure("2") do |config|
