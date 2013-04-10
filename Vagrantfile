@@ -23,8 +23,8 @@ Vagrant.configure("2") do |config|
 
             config.vm.define "#{hostname}" do |box|
                 box.vm.hostname = "#{hostname}.lab"
-                box.vm.network :private_network, ip: "172.16.0.#{ip_start+i}", :netmask => "255.255.0.0"
-                box.vm.network :private_network, ip: "10.10.0.#{ip_start+i}", :netmask => "255.255.0.0" 
+                box.vm.network :private_network, ip: "172.16.172.#{ip_start+i}", :netmask => "255.255.255.0"
+                box.vm.network :private_network, ip: "10.10.10.#{ip_start+i}", :netmask => "255.255.255.0" 
 
                 box.vm.provision :shell, :path => "#{prefix}.sh"
 
@@ -32,7 +32,7 @@ Vagrant.configure("2") do |config|
                 box.vm.provider :vmware_fusion do |v|
                     v.vmx["memsize"] = 1024
             	    if prefix == "compute"
-    	              	v.vmx["memsize"] = 3128
+    	              	v.vmx["memsize"] = 2048
     	            elsif prefix == "proxy"
         	                v.vmx["memsize"] = 512
     	            end
@@ -44,7 +44,7 @@ Vagrant.configure("2") do |config|
                     vbox.customize ["modifyvm", :id, "--memory", 1024]
                     vbox.customize ["modifyvm", :id, "--cpus", 1]
         		    if prefix == "compute"
-                            	vbox.customize ["modifyvm", :id, "--memory", 3128]
+                            	vbox.customize ["modifyvm", :id, "--memory", 2048]
                                 vbox.customize ["modifyvm", :id, "--cpus", 2]
         		    elsif prefix == "proxy"
         		        vbox.customize ["modifyvm", :id, "--memory", 512]

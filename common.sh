@@ -10,7 +10,7 @@
 
 export DEBIAN_FRONTEND=noninteractive
 
-export CONTROLLER_HOST=172.16.0.200
+export CONTROLLER_HOST=172.16.172.200
 export KEYSTONE_ENDPOINT=${CONTROLLER_HOST}
 export SERVICE_TENANT_NAME=service
 export SERVICE_PASS=openstack
@@ -19,7 +19,7 @@ export SERVICE_TOKEN=ADMIN
 export SERVICE_ENDPOINT=http://${ENDPOINT}:35357/v2.0
 
 # Setup Proxy
-APT_PROXY="172.16.0.110:3128"
+APT_PROXY="172.16.172.110:3128"
 #APT_PROXY="192.168.1.1:3128"
 #
 # If you have a proxy outside of your VirtualBox environment, use it
