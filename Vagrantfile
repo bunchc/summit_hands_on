@@ -2,11 +2,9 @@
 # vi: set ft=ruby :
 
 nodes = {
-    'proxy'	=> [1, 110],
-    'controller'  => [1, 200],
-    'compute'  => [1, 201],
-    'cinder'   => [1, 202],
-    'quantum'  => [1, 203],
+    'controller'  => [1, 200], # This node runs Keystone, Glance, Horizon, and the Quantum / Cinder bits.
+    'compute'  => [1, 201], # This node funcitons as an additional compute node
+    'iscsi' => [1,202], # This node will serve as our iscsi endpoint
 }
 
 Vagrant.configure("2") do |config|
@@ -30,24 +28,20 @@ Vagrant.configure("2") do |config|
 
                 # If using Fusion
                 box.vm.provider :vmware_fusion do |v|
-                    v.vmx["memsize"] = 1024
-            	    if prefix == "compute"
-    	              	v.vmx["memsize"] = 2048
-    	            elsif prefix == "proxy"
-        	                v.vmx["memsize"] = 512
+                    v.vmx["memsize"] = 2048
+                    v.vmx["numcpu"] = 3
+            	    if prefix == "controller"
+    	              	v.vmx["memsize"] = 3072                        
     	            end
                 end
 
                 # Otherwise using VirtualBox
                 box.vm.provider :virtualbox do |vbox|
 	            # Defaults
-                    vbox.customize ["modifyvm", :id, "--memory", 1024]
-                    vbox.customize ["modifyvm", :id, "--cpus", 1]
-        		    if prefix == "compute"
-                            	vbox.customize ["modifyvm", :id, "--memory", 2048]
-                                vbox.customize ["modifyvm", :id, "--cpus", 2]
-        		    elsif prefix == "proxy"
-        		        vbox.customize ["modifyvm", :id, "--memory", 512]
+                    vbox.customize ["modifyvm", :id, "--memory", 2048]
+                    vbox.customize ["modifyvm", :id, "--cpus", 3]
+        		    if prefix == "controller"
+                        vbox.customize ["modifyvm", :id, "--memory", 3072]
         		    end
                 end
             end
