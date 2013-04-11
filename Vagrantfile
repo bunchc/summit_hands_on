@@ -3,8 +3,8 @@
 
 nodes = {
     'controller'  => [1, 200], # This node runs Keystone, Glance, Horizon, and the Quantum / Cinder bits.
-    'compute'  => [1, 201], # This node funcitons as an additional compute node
-    'iscsi' => [1,202], # This node will serve as our iscsi endpoint
+    'compute'  => [2, 201], # These nodes funcitons as an additional compute node
+    'iscsi' => [1, 202], # This node will serve as our iscsi endpoint
 }
 
 Vagrant.configure("2") do |config|
@@ -29,20 +29,14 @@ Vagrant.configure("2") do |config|
                 # If using Fusion
                 box.vm.provider :vmware_fusion do |v|
                     v.vmx["memsize"] = 2048
-                    v.vmx["numcpu"] = 3
-            	    if prefix == "controller"
-    	              	v.vmx["memsize"] = 3072                        
-    	            end
+                    v.vmx["numcpu"] = 2
                 end
 
                 # Otherwise using VirtualBox
                 box.vm.provider :virtualbox do |vbox|
 	            # Defaults
                     vbox.customize ["modifyvm", :id, "--memory", 2048]
-                    vbox.customize ["modifyvm", :id, "--cpus", 3]
-        		    if prefix == "controller"
-                        vbox.customize ["modifyvm", :id, "--memory", 3072]
-        		    end
+                    vbox.customize ["modifyvm", :id, "--cpus", 2]
                 end
             end
         end

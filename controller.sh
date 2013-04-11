@@ -270,8 +270,33 @@ export OS_AUTH_URL=http://${MY_IP}:5000/v2.0/
 export OS_NO_CACHE=1
 
 sudo apt-get -y install wget
-wget http://uec-images.ubuntu.com/precise/current/precise-server-cloudimg-amd64-disk1.img
-glance image-create --name='Ubuntu 12.04 x86_64 Server' --disk-format=qcow2 --container-format=bare --public < precise-server-cloudimg-amd64-disk1.img
+wget https://launchpad.net/cirros/trunk/0.3.0/+download/cirros-0.3.0-x86_64-disk.img
+glance image-create --name='Cirros 0.3' --disk-format=qcow2 --container-format=bare --public < cirros-0.3.0-x86_64-disk.img
+
+######################
+# Quantum		     #
+######################
+
+# Install openvSwitch
+sudo apt-get install -y openvswitch-switch openvswitch-datapath-dkms
+
+# Make some bridges
+# br-int will be used for VM integration
+sudo ovs-vsctl add-br br-int
+
+# br-ex is used to make to access the internet (not covered in this guide)
+sudo ovs-vsctl add-br br-ex
+
+# Install Quantum bits
+sudo apt-get install -y quantum-server quantum-plugin-openvswitch quantum-plugin-openvswitch-agent dnsmasq quantum-dhcp-agent quantum-l3-agent
+
+# Create database
+MYSQL_ROOT_PASS=openstack
+MYSQL_GLANCE_PASS=openstack
+mysql -uroot -p$MYSQL_ROOT_PASS -e 'CREATE DATABASE quantum;'
+mysql -uroot -p$MYSQL_ROOT_PASS -e "GRANT ALL PRIVILEGES ON quantum.* TO 'quantum'@'%';"
+mysql -uroot -p$MYSQL_ROOT_PASS -e "SET PASSWORD FOR 'quantum'@'%' = PASSWORD('$MYSQL_GLANCE_PASS');"
+
 
 
 ######################
@@ -368,17 +393,3 @@ sudo start nova-api
 sudo start nova-scheduler
 sudo start nova-objectstore
 sudo start nova-conductor
-
-
-
-# Nova (Chapter 3)
-#for d in nova glance cinder keystone quantum
-#do
-#	echo "Creating $d user and databases"
-#	mysql -uroot -p$MYSQL_ROOT_PASS -e "drop database if exists $d;"
-#	mysql -uroot -p$MYSQL_ROOT_PASS -e "create database $d;"
-#	mysql -uroot -p$MYSQL_ROOT_PASS -e "grant all privileges on $d.* to $d@\"localhost\" identified by \"${MYSQL_DB_PASS}\";"
-#	mysql -uroot -p$MYSQL_ROOT_PASS -e "grant all privileges on $d.* to $d@\"${MYSQL_HOST}\" identified by \"${MYSQL_DB_PASS}\";"
-#	mysql -uroot -p$MYSQL_ROOT_PASS -e "grant all privileges on $d.* to $d@\"%\" identified by \"${MYSQL_DB_PASS}\";"
-#done
-

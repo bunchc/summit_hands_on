@@ -23,7 +23,7 @@ nova_configure() {
 	# Clobber the nova.conf file with the following
 	NOVA_CONF=/etc/nova/nova.conf
 	NOVA_API_PASTE=/etc/nova/api-paste.ini
-	cat > /tmp/nova.conf << EOF
+	cat > /tmp/nova.conf <<EOF
 [DEFAULT]
 dhcpbridge_flagfile=/etc/nova/nova.conf
 dhcpbridge=/usr/bin/nova-dhcpbridge
@@ -99,6 +99,10 @@ nova_compute_install
 nova_configure
 nova_restart
 
-# Create a private network
-sudo nova-manage network create privateNet --fixed_range_v4=10.0.10.0/24 --network_size=64 --bridge_interface=eth2
-sudo nova-manage floating create --ip_range=172.16.10.0/24
+# If this is our first time, create a private network
+if [ -f compute_done ]
+	echo "We're the second compute node"
+else
+	sudo nova-manage network create privateNet --fixed_range_v4=10.0.10.0/24 --network_size=64 --bridge_interface=eth2
+	sudo nova-manage floating create --ip_range=172.16.10.0/24
+fi
