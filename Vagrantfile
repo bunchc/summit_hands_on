@@ -3,7 +3,7 @@
 
 nodes = {
     'controller'  => [1, 200], # This node runs Keystone, Glance, Horizon, and the Quantum / Cinder bits.
-    'compute'  => [2, 201], # These nodes funcitons as an additional compute node
+    'compute'  => [1, 201], # These nodes funcitons as an additional compute node
     'iscsi' => [1, 202], # This node will serve as our iscsi endpoint
 }
 
