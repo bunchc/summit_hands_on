@@ -10,7 +10,7 @@
 
 # Must define your environment
 MYSQL_HOST=${CONTROLLER_HOST}
-
+GLANCE_HOST=${CONTROLLER_HOST}
 
 nova_compute_install() {
 
