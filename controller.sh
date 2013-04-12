@@ -309,13 +309,13 @@ sudo apt-get install -y quantum-plugin-openvswitch-agent quantum-dhcp-agent quan
 
 # Create database
 MYSQL_ROOT_PASS=openstack
-MYSQL_GLANCE_PASS=openstack
+MYSQL_QUANTUM_PASS=openstack
 mysql -uroot -p$MYSQL_ROOT_PASS -e 'CREATE DATABASE quantum;'
 mysql -uroot -p$MYSQL_ROOT_PASS -e "GRANT ALL PRIVILEGES ON quantum.* TO 'quantum'@'%';"
-mysql -uroot -p$MYSQL_ROOT_PASS -e "SET PASSWORD FOR 'quantum'@'%' = PASSWORD('$MYSQL_GLANCE_PASS');"
+mysql -uroot -p$MYSQL_ROOT_PASS -e "SET PASSWORD FOR 'quantum'@'%' = PASSWORD('$MYSQL_QUANTUM_PASS');"
 
 # Configure the quantum OVS plugin
-sudo sed -i "s|sql_connection = sqlite:////var/lib/quantum/ovs.sqlite|sql_connection = mysql://quantum:quantum@$MY_IP/quantum|g"  /etc/quantum/plugins/openvswitch/ovs_quantum_plugin.ini
+sudo sed -i "s|sql_connection = sqlite:////var/lib/quantum/ovs.sqlite|sql_connection = mysql://quantum:openstack@172.16.172.200/quantum|g"  /etc/quantum/plugins/openvswitch/ovs_quantum_plugin.ini
 sudo sed -i 's/# Default: integration_bridge = br-int/integration_bridge = br-int/g' /etc/quantum/plugins/openvswitch/ovs_quantum_plugin.ini
 sudo sed -i 's/# Default: tunnel_bridge = br-tun/tunnel_bridge = br-tun/g' /etc/quantum/plugins/openvswitch/ovs_quantum_plugin.ini
 sudo sed -i 's/# Default: enable_tunneling = False/enable_tunneling = True/g' /etc/quantum/plugins/openvswitch/ovs_quantum_plugin.ini
@@ -414,17 +414,10 @@ sudo service openvswitch-switch restart
 sudo ovs-vsctl add-br br-int
 sudo ovs-vsctl add-br br-ex
 
-# Restart the quantum services
-sudo service quantum-server restart
-sudo service quantum-plugin-openvswitch-agent restart
-sudo service quantum-dhcp-agent restart
-sudo service quantum-l3-agent restart
-
 # Create a network and subnet
 TENANT_ID=$(keystone tenant-list | awk '/\ cookbook\ / {print $2}')
 PRIVATE_NET_ID=`quantum net-create private | awk '/ id / { print $4 }'`
 PRIVATE_SUBNET1_ID=`quantum subnet-create --tenant-id $TENANT_ID --name private-subnet1 --ip-version 4 $PRIVATE_NET_ID 10.0.0.0/29 | awk '/ id / { print $4 }'`
-
 
 ######################
 # Chapter 3 COMPUTE  #
