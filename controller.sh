@@ -42,7 +42,7 @@ mysqladmin -uroot -p${MYSQL_ROOT_PASS} flush-privileges
 ######################
 
 # Create database
-sudo apt-get -y install keystone python-keyring
+sudo apt-get -y install keystone python-keyring rabbitmq-server
 
 MYSQL_ROOT_PASS=openstack
 MYSQL_KEYSTONE_PASS=openstack
@@ -114,6 +114,9 @@ keystone service-create --name keystone --type identity --description 'OpenStack
 # Cinder Block Storage Endpoint
 keystone service-create --name volume --type volume --description 'Volume Service'
 
+# Quantum Network Service Endpoint
+keystone service-create --name network --type network --description 'Quantum Network Service'
+
 # OpenStack Compute Nova API
 NOVA_SERVICE_ID=$(keystone service-list | awk '/\ nova\ / {print $2}')
 
@@ -159,6 +162,15 @@ INTERNAL=$PUBLIC
 
 keystone endpoint-create --region RegionOne --service_id $CINDER_SERVICE_ID --publicurl $PUBLIC --adminurl $ADMIN --internalurl $INTERNAL
 
+# Quantum Network Service
+QUANTUM_SERVICE_ID=$(keystone service-list | awk '/\ network\ / {print $2}')
+
+PUBLIC="http://$ENDPOINT:9696/"
+ADMIN=$PUBLIC
+INTERNAL=$PUBLIC
+
+keystone endpoint-create --region RegionOne --service_id $QUANTUM_SERVICE_ID --publicurl $PUBLIC --adminurl $ADMIN --internalurl $INTERNAL
+
 # Service Tenant
 keystone tenant-create --name service --description "Service Tenant" --enabled true
 
@@ -171,6 +183,8 @@ keystone user-create --name glance --pass glance --tenant_id $SERVICE_TENANT_ID 
 keystone user-create --name keystone --pass keystone --tenant_id $SERVICE_TENANT_ID --email keystone@localhost --enabled true
 
 keystone user-create --name cinder --pass cinder --tenant_id $SERVICE_TENANT_ID --email cinder@localhost --enabled true
+
+keystone user-create --name quantum --pass quantum --tenant_id $SERVICE_TENANT_ID --email quantum@localhost --enabled true
 
 # Get the nova user id
 NOVA_USER_ID=$(keystone user-list | awk '/\ nova\ / {print $2}')
@@ -198,6 +212,13 @@ CINDER_USER_ID=$(keystone user-list | awk '/\ cinder \ / {print $2}')
 
 # Assign the cinder user the admin role in service tenant
 keystone user-role-add --user $CINDER_USER_ID --role $ADMIN_ROLE_ID --tenant_id $SERVICE_TENANT_ID
+
+# Create quantum service user in the services tenant
+QUANTUM_USER_ID=$(keystone user-list | awk '/\ quantum \ / {print $2}')
+
+# Grant admin role to quantum service user
+keystone user-role-add --user $QUANTUM_USER_ID --role $ADMIN_ROLE_ID --tenant_id $SERVICE_TENANT_ID
+
 
 ######################
 # Chapter 2 GLANCE   #
@@ -276,19 +297,15 @@ glance image-create --name='Cirros 0.3' --disk-format=qcow2 --container-format=b
 ######################
 # Quantum		     #
 ######################
+# Install dependencies
+sudo apt-get install -y linux-headers-`uname -r` build-essential
+sudo apt-get install -y openvswitch-switch
 
-# Install openvSwitch
-sudo apt-get install -y openvswitch-switch openvswitch-datapath-dkms
+# Install the network service (quantum)
+sudo apt-get install -y quantum-server quantum-plugin-openvswitch
 
-# Make some bridges
-# br-int will be used for VM integration
-sudo ovs-vsctl add-br br-int
-
-# br-ex is used to make to access the internet (not covered in this guide)
-sudo ovs-vsctl add-br br-ex
-
-# Install Quantum bits
-sudo apt-get install -y quantum-server quantum-plugin-openvswitch quantum-plugin-openvswitch-agent dnsmasq quantum-dhcp-agent quantum-l3-agent
+# Install the network service (quantum) agents
+sudo apt-get install -y quantum-plugin-openvswitch-agent quantum-dhcp-agent quantum-l3-agent
 
 # Create database
 MYSQL_ROOT_PASS=openstack
@@ -297,6 +314,116 @@ mysql -uroot -p$MYSQL_ROOT_PASS -e 'CREATE DATABASE quantum;'
 mysql -uroot -p$MYSQL_ROOT_PASS -e "GRANT ALL PRIVILEGES ON quantum.* TO 'quantum'@'%';"
 mysql -uroot -p$MYSQL_ROOT_PASS -e "SET PASSWORD FOR 'quantum'@'%' = PASSWORD('$MYSQL_GLANCE_PASS');"
 
+# Configure the quantum OVS plugin
+sudo sed -i "s|sql_connection = sqlite:////var/lib/quantum/ovs.sqlite|sql_connection = mysql://quantum:quantum@$MY_IP/quantum|g"  /etc/quantum/plugins/openvswitch/ovs_quantum_plugin.ini
+sudo sed -i 's/# Default: integration_bridge = br-int/integration_bridge = br-int/g' /etc/quantum/plugins/openvswitch/ovs_quantum_plugin.ini
+sudo sed -i 's/# Default: tunnel_bridge = br-tun/tunnel_bridge = br-tun/g' /etc/quantum/plugins/openvswitch/ovs_quantum_plugin.ini
+sudo sed -i 's/# Default: enable_tunneling = False/enable_tunneling = True/g' /etc/quantum/plugins/openvswitch/ovs_quantum_plugin.ini
+sudo sed -i 's/# Example: tenant_network_type = gre/tenant_network_type = gre/g' /etc/quantum/plugins/openvswitch/ovs_quantum_plugin.ini
+sudo sed -i 's/# Example: tunnel_id_ranges = 1:1000/tunnel_id_ranges = 1:1000/g' /etc/quantum/plugins/openvswitch/ovs_quantum_plugin.ini
+sudo sed -i "s/# Default: local_ip =/local_ip = 172.16.172.200/g" /etc/quantum/plugins/openvswitch/ovs_quantum_plugin.ini
+
+# List the new user and role assigment
+keystone user-list --tenant-id $SERVICE_TENANT_ID
+keystone user-role-list --tenant-id $SERVICE_TENANT_ID --user-id $QUANTUM_USER_ID
+
+# Configure the quantum service to use keystone
+sudo cat > /etc/quantum/api-paste.ini <<EOF
+[composite:quantum]
+use = egg:Paste#urlmap
+/: quantumversions
+/v2.0: quantumapi_v2_0
+
+[composite:quantumapi_v2_0]
+use = call:quantum.auth:pipeline_factory
+noauth = extensions quantumapiapp_v2_0
+keystone = authtoken keystonecontext extensions quantumapiapp_v2_0
+
+[filter:keystonecontext]
+paste.filter_factory = quantum.auth:QuantumKeystoneContext.factory
+
+[filter:authtoken]
+paste.filter_factory = keystone.middleware.auth_token:filter_factory
+auth_host = 172.16.172.200
+auth_port = 35357
+auth_protocol = http
+admin_tenant_name = service
+admin_user = quantum
+admin_password = quantum
+
+[filter:extensions]
+paste.filter_factory = quantum.api.extensions:plugin_aware_extension_middleware_factory
+
+[app:quantumversions]
+paste.app_factory = quantum.api.versions:Versions.factory
+
+[app:quantumapiapp_v2_0]
+paste.app_factory = quantum.api.v2.router:APIRouter.factory
+EOF
+
+sudo cat > /etc/quantum/l3_agent.ini <<EOF
+[DEFAULT]
+# Show debugging output in log (sets DEBUG log level output)
+# debug = True
+
+# L3 requires that an interface driver be set.  Choose the one that best
+# matches your plugin.
+
+# OVS based plugins (OVS, Ryu, NEC) that supports L3 agent
+interface_driver = quantum.agent.linux.interface.OVSInterfaceDriver
+auth_url = http://172.16.172.200:35357/v2.0
+auth_region = RegionOne
+admin_tenant_name = service
+admin_user = quantum
+admin_password = quantum
+EOF
+
+sudo cat > /etc/quantum/metadata_agent.ini <<EOF
+[DEFAULT]
+# The Quantum user information for accessing the Quantum API.
+auth_url = http://172.16.172.200:35357/v2.0
+auth_region = RegionOne
+admin_tenant_name = service
+admin_user = quantum
+admin_password = quantum
+
+# IP address used by Nova metadata server
+nova_metadata_ip = 172.16.172.200
+
+# TCP Port used by Nova metadata server
+nova_metadata_port = 8775
+
+metadata_proxy_shared_secret = helloOpenStack
+EOF
+
+sudo sed -i 's/# auth_strategy = keystone/auth_strategy = keystone/g' /etc/quantum/quantum.conf
+sudo sed -i 's/# rabbit_host = localhost/rabbit_host = 172.16.172.200/g' /etc/quantum/quantum.conf
+sudo sed -i 's/auth_host = 127.0.0.1/auth_host = 172.16.172.200/g' /etc/quantum/quantum.conf
+sudo sed -i 's/admin_tenant_name = %SERVICE_TENANT_NAME%/admin_tenant_name = service/g' /etc/quantum/quantum.conf
+sudo sed -i 's/admin_user = %SERVICE_USER%/admin_user = quantum/g' /etc/quantum/quantum.conf
+sudo sed -i 's/admin_password = %SERVICE_PASSWORD%/admin_password = quantum/g' /etc/quantum/quantum.conf
+sudo sed -i 's/bind_host = 0.0.0.0/bind_host = 172.16.172.200/g' /etc/quantum/quantum.conf
+
+# Restart Services
+cd /etc/init.d/; for i in $( ls quantum-* ); do sudo service $i restart; done
+
+# Start Open vSwitch
+sudo service openvswitch-switch restart
+
+# Create the integration and external bridges
+sudo ovs-vsctl add-br br-int
+sudo ovs-vsctl add-br br-ex
+
+# Restart the quantum services
+sudo service quantum-server restart
+sudo service quantum-plugin-openvswitch-agent restart
+sudo service quantum-dhcp-agent restart
+sudo service quantum-l3-agent restart
+
+# Create a network and subnet
+TENANT_ID=$(keystone tenant-list | awk '/\ cookbook\ / {print $2}')
+PRIVATE_NET_ID=`quantum net-create private | awk '/ id / { print $4 }'`
+PRIVATE_SUBNET1_ID=`quantum subnet-create --tenant-id $TENANT_ID --name private-subnet1 --ip-version 4 $PRIVATE_NET_ID 10.0.0.0/29 | awk '/ id / { print $4 }'`
 
 
 ######################
@@ -316,7 +443,7 @@ mysql -uroot -p$MYSQL_ROOT_PASS -e 'CREATE DATABASE nova;'
 mysql -uroot -p$MYSQL_ROOT_PASS -e "GRANT ALL PRIVILEGES ON nova.* TO 'nova'@'%'"
 mysql -uroot -p$MYSQL_ROOT_PASS -e "SET PASSWORD FOR 'nova'@'%' = PASSWORD('$MYSQL_NOVA_PASS');"
 
-sudo apt-get -y install rabbitmq-server nova-api nova-scheduler nova-objectstore dnsmasq nova-conductor
+sudo apt-get -y install nova-api nova-scheduler nova-objectstore dnsmasq nova-conductor
 
 # Clobber the nova.conf file with the following
 NOVA_CONF=/etc/nova/nova.conf
@@ -393,3 +520,41 @@ sudo start nova-api
 sudo start nova-scheduler
 sudo start nova-objectstore
 sudo start nova-conductor
+
+###
+# Horizon
+###
+# Install dependencies
+sudo apt-get install -y memcached novnc
+
+# Install the dashboard (horizon)
+sudo apt-get install -y --no-install-recommends openstack-dashboard nova-novncproxy
+
+# Configure nova for VNC
+( cat | sudo tee -a /etc/nova/nova.conf ) <<EOF
+novncproxy_base_url=http://$MY_IP:6080/vnc_auto.html
+vncserver_proxyclient_address=$MY_IP
+vncserver_listen=0.0.0.0
+EOF
+
+# Set default role
+#sudo sed -i 's/OPENSTACK_KEYSTONE_DEFAULT_ROLE = "Member"/OPENSTACK_KEYSTONE_DEFAULT_ROLE = "member"/g' /etc/openstack-dashboard/local_settings.py
+sudo sed -i 's/OPENSTACK_HOST = "127.0.0.1"/OPENSTACK_HOST = "$MY_IP"/g' /etc/openstack-dashboard/local_settings.py
+
+# Restart the nova services
+sudo service nova-api restart
+sudo service nova-scheduler restart
+sudo service nova-compute restart
+sudo service nova-cert restart
+sudo service nova-consoleauth restart
+sudo service nova-novncproxy restart
+sudo service apache2 restart
+
+# Make us a creds file
+
+cat > /root/.stackrc <<EOF
+export OS_TENANT_NAME=cookbook
+export OS_USERNAME=admin
+export OS_PASSWORD=openstack
+export OS_AUTH_URL=http://${MY_IP}:5000/v2.0/
+EOF

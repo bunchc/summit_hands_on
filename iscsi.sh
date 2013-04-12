@@ -7,10 +7,6 @@
 # Source in common env vars
 . /vagrant/common.sh
 
-sudo aptitude purge ebtables
-sudo apt-get install -y libvirt-bin build-essential linux-headers-`uname -r`
-
-virsh net-destroy default
-virsh net-undefine default
-
-apt-get install -y openvswitch-controller openvswitch-datapath-source openvswitch-brcompat openvswitch-switch 
+# Install dependencies
+sudo apt-get install -y linux-headers-`uname -r` build-essential
+sudo apt-get install -y openvswitch-switch
