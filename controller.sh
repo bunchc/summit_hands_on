@@ -444,7 +444,7 @@ sudo apt-get -y install nova-api-metadata nova-compute nova-compute-qemu nova-do
 NOVA_CONF=/etc/nova/nova.conf
 NOVA_API_PASTE=/etc/nova/api-paste.ini
 
-cat > /tmp/nova.conf << EOF
+cat > /tmp/nova.conf <<EOF
 [DEFAULT]
 dhcpbridge_flagfile=/etc/nova/nova.conf
 dhcpbridge=/usr/bin/nova-dhcpbridge
