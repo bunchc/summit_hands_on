@@ -299,7 +299,7 @@ glance image-create --name='Cirros 0.3' --disk-format=qcow2 --container-format=b
 ######################
 # Install dependencies
 sudo apt-get install -y linux-headers-`uname -r` build-essential
-sudo apt-get install -y openvswitch-switch
+sudo apt-get install -y openvswitch-switch openvswitch-datapath-dkms
 
 # Install the network service (quantum)
 sudo apt-get install -y quantum-server quantum-plugin-openvswitch
@@ -556,14 +556,14 @@ sudo apt-get install -y --no-install-recommends openstack-dashboard nova-novncpr
 
 # Set default role
 #sudo sed -i 's/OPENSTACK_KEYSTONE_DEFAULT_ROLE = "Member"/OPENSTACK_KEYSTONE_DEFAULT_ROLE = "member"/g' /etc/openstack-dashboard/local_settings.py
-sudo sed -i 's/OPENSTACK_HOST = "127.0.0.1"/OPENSTACK_HOST = "$MY_IP"/g' /etc/openstack-dashboard/local_settings.py
+sudo sed -i 's/OPENSTACK_HOST = "127.0.0.1"/OPENSTACK_HOST = "${MY_IP}"/g' /etc/openstack-dashboard/local_settings.py
 
 # Restart the nova services
 sudo service nova-api restart
 sudo service nova-scheduler restart
 sudo service nova-compute restart
-sudo service nova-cert restart
-sudo service nova-consoleauth restart
+#sudo service nova-cert restart
+#sudo service nova-consoleauth restart
 sudo service nova-novncproxy restart
 sudo service apache2 restart
 
