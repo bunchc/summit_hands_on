@@ -29,7 +29,10 @@ Vagrant.configure("2") do |config|
                 # If using Fusion
                 box.vm.provider :vmware_fusion do |v|
                     v.vmx["memsize"] = 2048
-                    v.vmx["numcpu"] = 2
+                    v.vmx["numvcpus"] = 2
+                    if prefix == "iscsi"
+                        v.vmx["memsize"] = 1024
+                    end
                 end
 
                 # Otherwise using VirtualBox
@@ -37,6 +40,9 @@ Vagrant.configure("2") do |config|
 	            # Defaults
                     vbox.customize ["modifyvm", :id, "--memory", 2048]
                     vbox.customize ["modifyvm", :id, "--cpus", 2]
+                    if prefix == "iscsi"
+                        vbox.customize ["modifyvm", :id, "--memory", 1024]
+                    end
                 end
             end
         end
