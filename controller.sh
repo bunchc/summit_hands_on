@@ -290,14 +290,6 @@ export OS_PASSWORD=openstack
 export OS_AUTH_URL=http://${MY_IP}:5000/v2.0/
 export OS_NO_CACHE=1
 
-#Create openrc for user management
-cat > ~/openrc <<EOF
-export OS_TENANT_NAME=cookbook
-export OS_USERNAME=admin
-export OS_PASSWORD=openstack
-export OS_AUTH_URL=http://${MY_IP}:5000/v2.0/
-EOF
-
 sudo apt-get -y install wget
 wget https://launchpad.net/cirros/trunk/0.3.0/+download/cirros-0.3.0-x86_64-disk.img
 glance image-create --name='Cirros 0.3' --disk-format=qcow2 --container-format=bare --public < cirros-0.3.0-x86_64-disk.img
@@ -412,15 +404,15 @@ sudo sed -i 's/admin_user = %SERVICE_USER%/admin_user = quantum/g' /etc/quantum/
 sudo sed -i 's/admin_password = %SERVICE_PASSWORD%/admin_password = quantum/g' /etc/quantum/quantum.conf
 sudo sed -i 's/bind_host = 0.0.0.0/bind_host = 172.16.172.200/g' /etc/quantum/quantum.conf
 
-# Restart Services
-cd /etc/init.d/; for i in $( ls quantum-* ); do sudo service $i restart; done
-
 # Start Open vSwitch
 sudo service openvswitch-switch restart
 
 # Create the integration and external bridges
 sudo ovs-vsctl add-br br-int
 sudo ovs-vsctl add-br br-ex
+
+# Restart Services
+cd /etc/init.d/; for i in $( ls quantum-* ); do sudo service $i restart; done
 
 # Create a network and subnet
 TENANT_ID=$(keystone tenant-list | awk '/\ cookbook\ / {print $2}')
@@ -445,7 +437,7 @@ mysql -uroot -p$MYSQL_ROOT_PASS -e "GRANT ALL PRIVILEGES ON nova.* TO 'nova'@'%'
 mysql -uroot -p$MYSQL_ROOT_PASS -e "SET PASSWORD FOR 'nova'@'%' = PASSWORD('$MYSQL_NOVA_PASS');"
 
 sudo apt-get -y install nova-api nova-scheduler nova-objectstore dnsmasq nova-conductor 
-sudo apt-get -y install nova-api-metadata nova-compute nova-compute-qemu nova-doc nova-network
+sudo apt-get -y install nova-api nova-compute nova-compute-qemu nova-doc nova-network nova-cert nova-consoleauth
 
 
 # Clobber the nova.conf file with the following
@@ -564,7 +556,7 @@ sudo apt-get install -y --no-install-recommends openstack-dashboard nova-novncpr
 
 # Set default role
 #sudo sed -i 's/OPENSTACK_KEYSTONE_DEFAULT_ROLE = "Member"/OPENSTACK_KEYSTONE_DEFAULT_ROLE = "member"/g' /etc/openstack-dashboard/local_settings.py
-sudo sed -i 's/OPENSTACK_HOST = "127.0.0.1"/OPENSTACK_HOST = "$MY_IP"/g' /etc/openstack-dashboard/local_settings.py
+sudo sed -i "s/OPENSTACK_HOST = \"127.0.0.1\"/OPENSTACK_HOST = \"${MY_IP}\"/g" /etc/openstack-dashboard/local_settings.py
 
 # Restart the nova services
 sudo service nova-api restart
@@ -583,3 +575,6 @@ export OS_USERNAME=admin
 export OS_PASSWORD=openstack
 export OS_AUTH_URL=http://${MY_IP}:5000/v2.0/
 EOF
+
+
+
