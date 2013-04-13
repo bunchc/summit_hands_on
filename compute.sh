@@ -4,6 +4,8 @@
 
 # Authors: Kevin Jackson (kevin@linuxservices.co.uk)
 #          Cody Bunch (bunchc@gmail.com)
+# There are lots of bits adapted from:
+# https://github.com/mseknibilel/OpenStack-Grizzly-Install-Guide/blob/OVS_MultiNode/OpenStack_Grizzly_Install_Guide.rst
 
 # Source in common env vars
 . /vagrant/common.sh
@@ -15,11 +17,61 @@ GLANCE_HOST=${CONTROLLER_HOST}
 nova_compute_install() {
 
 	# Install some packages:
-	sudo apt-get -y install nova-api-metadata nova-compute nova-compute-qemu nova-doc nova-network
+	sudo apt-get -y install nova-api-metadata nova-compute nova-compute-qemu nova-doc nova-network 
+	sudo apt-get install -y vlan bridge-utils
+	sudo apt-get install -y libvirt-bin pm-utils
 	sudo service ntp restart
 }
 
 nova_configure() {
+
+# Networking 
+# ip forwarding
+sed -i 's/#net.ipv4.ip_forward=1/net.ipv4.ip_forward=1/' /etc/sysctl.conf
+# To save you from rebooting, perform the following
+sysctl net.ipv4.ip_forward=1
+# Kill default bridge
+virsh net-destroy default
+virsh net-undefine default
+
+# Enable Live migrate
+#sudo sed -i 's/listen_tls = 0//g' /etc/libvirt/libvirt.conf
+#listen_tcp = 1
+#auth_tcp = "none"'
+
+# Enable libvirtd_opts
+# env libvirtd_opts="-d -l"
+# /etc/default/libvirt-bin
+#libvirtd_opts="-d -l"
+
+# restart libvirt
+sudo service libvirt-bin restart
+
+# OpenVSwitch
+sudo apt-get install -y linux-headers-`uname -r` build-essential
+sudo apt-get install -y openvswitch-switch openvswitch-datapath-dkms
+
+# Make the bridge br-int, used for VM integration
+ovs-vsctl add-br br-int
+
+# Quantum
+sudo apt-get install -y quantum-plugin-openvswitch-agent
+
+# Configure Quantum
+sudo sed -i "s|sql_connection = sqlite:////var/lib/quantum/ovs.sqlite|sql_connection = mysql://quantum:openstack@${CONTROLLER_HOST}/quantum|g"  /etc/quantum/plugins/openvswitch/ovs_quantum_plugin.ini
+sudo sed -i 's/# Default: integration_bridge = br-int/integration_bridge = br-int/g' /etc/quantum/plugins/openvswitch/ovs_quantum_plugin.ini
+sudo sed -i 's/# Default: tunnel_bridge = br-tun/tunnel_bridge = br-tun/g' /etc/quantum/plugins/openvswitch/ovs_quantum_plugin.ini
+sudo sed -i 's/# Default: enable_tunneling = False/enable_tunneling = True/g' /etc/quantum/plugins/openvswitch/ovs_quantum_plugin.ini
+sudo sed -i 's/# Example: tenant_network_type = gre/tenant_network_type = gre/g' /etc/quantum/plugins/openvswitch/ovs_quantum_plugin.ini
+sudo sed -i 's/# Example: tunnel_id_ranges = 1:1000/tunnel_id_ranges = 1:1000/g' /etc/quantum/plugins/openvswitch/ovs_quantum_plugin.ini
+sudo sed -i "s/# Default: local_ip =/local_ip = ${CONTROLLER_HOST}/g" /etc/quantum/plugins/openvswitch/ovs_quantum_plugin.ini
+sudo sed -i 's/# rabbit_host = localhost/rabbit_host = ${CONTROLLER_HOST}/g' /etc/quantum/quantum.conf
+
+# Restart Quantum Services
+service quantum-plugin-openvswitch-agent restart
+
+
+# Nova Conf
 	# Clobber the nova.conf file with the following
 	NOVA_CONF=/etc/nova/nova.conf
 	NOVA_API_PASTE=/etc/nova/api-paste.ini
@@ -98,11 +150,3 @@ nova_restart() {
 nova_compute_install
 nova_configure
 nova_restart
-
-# If this is our first time, create a private network
-if [ -f compute_done ]
-	echo "We're the second compute node"
-else
-	sudo nova-manage network create privateNet --fixed_range_v4=10.0.10.0/24 --network_size=64 --bridge_interface=eth2
-	sudo nova-manage floating create --ip_range=172.16.10.0/24
-fi

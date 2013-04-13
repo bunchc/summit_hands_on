@@ -10,6 +10,10 @@
 
 export DEBIAN_FRONTEND=noninteractive
 
+# Setup Proxy
+#echo 'Acquire::http { Proxy "http://172.16.172.110:3142"; };' | sudo tee /etc/apt/apt.conf.d/01apt-cacher-ng-proxy
+
+
 export CONTROLLER_HOST=172.16.172.200
 export KEYSTONE_ENDPOINT=${CONTROLLER_HOST}
 export SERVICE_TENANT_NAME=service
