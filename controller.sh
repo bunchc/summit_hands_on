@@ -155,8 +155,8 @@ keystone endpoint-create --region RegionOne --service_id $KEYSTONE_SERVICE_ID --
 
 # Cinder Block Storage Service
 CINDER_SERVICE_ID=$(keystone service-list | awk '/\ volume\ / {print $2}')
-
-PUBLIC="http://$ENDPOINT:8776/v1/%(tenant_id)s"
+CINDER_ENDPOINT="172.16.172.202"
+PUBLIC="http://$CINDER_ENDPOINT:8776/v1/%(tenant_id)s"
 ADMIN=$PUBLIC
 INTERNAL=$PUBLIC
 
@@ -323,7 +323,7 @@ mysql -uroot -p$MYSQL_ROOT_PASS -e "GRANT ALL PRIVILEGES ON quantum.* TO 'quantu
 mysql -uroot -p$MYSQL_ROOT_PASS -e "SET PASSWORD FOR 'quantum'@'%' = PASSWORD('$MYSQL_QUANTUM_PASS');"
 
 # Configure the quantum OVS plugin
-sudo sed -i "s|sql_connection = sqlite:////var/lib/quantum/ovs.sqlite|sql_connection = mysql://quantum:openstack@172.16.172.200/quantum|g"  /etc/quantum/plugins/openvswitch/ovs_quantum_plugin.ini
+sudo sed -i "s|sql_connection = sqlite:////var/lib/quantum/ovs.sqlite|sql_connection = mysql://quantum:openstack@1172.16.172.200/quantum|g"  /etc/quantum/plugins/openvswitch/ovs_quantum_plugin.ini
 sudo sed -i 's/# Default: integration_bridge = br-int/integration_bridge = br-int/g' /etc/quantum/plugins/openvswitch/ovs_quantum_plugin.ini
 sudo sed -i 's/# Default: tunnel_bridge = br-tun/tunnel_bridge = br-tun/g' /etc/quantum/plugins/openvswitch/ovs_quantum_plugin.ini
 sudo sed -i 's/# Default: enable_tunneling = False/enable_tunneling = True/g' /etc/quantum/plugins/openvswitch/ovs_quantum_plugin.ini
@@ -352,7 +352,7 @@ paste.filter_factory = quantum.auth:QuantumKeystoneContext.factory
 
 [filter:authtoken]
 paste.filter_factory = keystone.middleware.auth_token:filter_factory
-auth_host = 172.16.172.200
+auth_host = ${MY_IP}
 auth_port = 35357
 auth_protocol = http
 admin_tenant_name = service
@@ -379,7 +379,7 @@ sudo cat > /etc/quantum/l3_agent.ini <<EOF
 
 # OVS based plugins (OVS, Ryu, NEC) that supports L3 agent
 interface_driver = quantum.agent.linux.interface.OVSInterfaceDriver
-auth_url = http://172.16.172.200:35357/v2.0
+auth_url = http://${MY_IP}:35357/v2.0
 auth_region = RegionOne
 admin_tenant_name = service
 admin_user = quantum
@@ -389,14 +389,14 @@ EOF
 sudo cat > /etc/quantum/metadata_agent.ini <<EOF
 [DEFAULT]
 # The Quantum user information for accessing the Quantum API.
-auth_url = http://172.16.172.200:35357/v2.0
+auth_url = http://${MY_IP}:35357/v2.0
 auth_region = RegionOne
 admin_tenant_name = service
 admin_user = quantum
 admin_password = quantum
 
 # IP address used by Nova metadata server
-nova_metadata_ip = 172.16.172.200
+nova_metadata_ip = ${MY_IP}
 
 # TCP Port used by Nova metadata server
 nova_metadata_port = 8775
@@ -445,7 +445,7 @@ mysql -uroot -p$MYSQL_ROOT_PASS -e "GRANT ALL PRIVILEGES ON nova.* TO 'nova'@'%'
 mysql -uroot -p$MYSQL_ROOT_PASS -e "SET PASSWORD FOR 'nova'@'%' = PASSWORD('$MYSQL_NOVA_PASS');"
 
 sudo apt-get -y install nova-api nova-scheduler nova-objectstore dnsmasq nova-conductor 
-sudo apt-get -y install nova-api-metadata nova-compute nova-compute-qemu nova-doc nova-network
+sudo apt-get -y install nova-compute nova-compute-qemu nova-doc nova-network
 
 
 # Clobber the nova.conf file with the following
@@ -572,8 +572,7 @@ sudo apt-get install -y memcached novnc
 sudo apt-get install -y --no-install-recommends openstack-dashboard nova-novncproxy
 
 # Set default role
-#sudo sed -i 's/OPENSTACK_KEYSTONE_DEFAULT_ROLE = "Member"/OPENSTACK_KEYSTONE_DEFAULT_ROLE = "member"/g' /etc/openstack-dashboard/local_settings.py
-sudo sed -i 's/OPENSTACK_HOST = "127.0.0.1"/OPENSTACK_HOST = "${MY_IP}"/g' /etc/openstack-dashboard/local_settings.py
+sudo sed -i 's/OPENSTACK_HOST = "127.0.0.1"/OPENSTACK_HOST = "172.16.172.200"/g' /etc/openstack-dashboard/local_settings.py
 
 # Restart the nova services
 sudo service nova-api restart
