@@ -564,7 +564,6 @@ sudo apt-get install -y memcached novnc
 sudo apt-get install -y --no-install-recommends openstack-dashboard nova-novncproxy
 
 # Set default role
-#sudo sed -i 's/OPENSTACK_KEYSTONE_DEFAULT_ROLE = "Member"/OPENSTACK_KEYSTONE_DEFAULT_ROLE = "member"/g' /etc/openstack-dashboard/local_settings.py
 sudo sed -i "s/OPENSTACK_HOST = \"127.0.0.1\"/OPENSTACK_HOST = \"${MY_IP}\"/g" /etc/openstack-dashboard/local_settings.py
 
 # Restart the nova services
