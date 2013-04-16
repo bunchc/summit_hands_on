@@ -84,11 +84,14 @@ state_path=/var/lib/nova
 lock_path=/var/lock/nova
 root_helper=sudo nova-rootwrap /etc/nova/rootwrap.conf
 verbose=True
+rabbit_host=${MYSQL_HOST}
+nova_url=http://${MYSQL_HOST}:8774/v1.1/
 
 api_paste_config=/etc/nova/api-paste.ini
 enabled_apis=ec2,osapi_compute,metadata
 
 # Libvirt and Virtualization
+compute_driver=libvirt.LibvirtDriver
 libvirt_use_virtio_for_bridges=True
 connection_type=libvirt
 libvirt_type=qemu
@@ -104,10 +107,28 @@ ec2_host=${MYSQL_HOST}
 ec2_dmz_host=${MYSQL_HOST}
 ec2_private_dns_show_ip=True
 
-# Networking
-public_interface=eth1
-force_dhcp_release=True
-auto_assign_floating_ip=True
+# Network settings
+network_api_class=nova.network.quantumv2.api.API
+quantum_url=http://${CONTROLLER_HOST}:9696
+quantum_auth_strategy=keystone
+quantum_admin_tenant_name=service
+quantum_admin_username=quantum
+quantum_admin_password=quantum
+quantum_admin_auth_url=http://${MY_IP}:35357/v2.0
+libvirt_vif_driver=nova.virt.libvirt.vif.LibvirtHybridOVSBridgeDriver
+linuxnet_interface_driver=nova.network.linux_net.LinuxOVSInterfaceDriver
+firewall_driver=nova.virt.libvirt.firewall.IptablesFirewallDriver
+
+#Metadata
+service_quantum_metadata_proxy = True
+quantum_metadata_proxy_shared_secret = helloOpenStack
+metadata_host = ${CONTROLLER_HOST}
+metadata_listen = 127.0.0.1
+metadata_listen_port = 8775
+
+# Cinder #
+volume_api_class=nova.volume.cinder.API
+osapi_volume_listen_port=5900
 
 # Images
 image_service=nova.image.glance.GlanceImageService
@@ -122,6 +143,13 @@ iscsi_helper=tgtadm
 # Auth
 auth_strategy=keystone
 keystone_ec2_url=http://${KEYSTONE_ENDPOINT}:5000/v2.0/ec2tokens
+
+# NoVNC
+novnc_enabled=true
+novncproxy_base_url=http://${MY_IP}:6080/vnc_auto.html
+novncproxy_port=6080
+vncserver_proxyclient_address=${MY_IP}
+vncserver_listen=0.0.0.0
 EOF
 
 	sudo rm -f $NOVA_CONF

@@ -291,7 +291,7 @@ export OS_AUTH_URL=http://${MY_IP}:5000/v2.0/
 export OS_NO_CACHE=1
 
 sudo apt-get -y install wget
-wget https://launchpad.net/cirros/trunk/0.3.0/+download/cirros-0.3.0-x86_64-disk.img
+wget http://${PROXY}/cirros-0.3.0-x86_64-disk.img
 glance image-create --name='Cirros 0.3' --disk-format=qcow2 --container-format=bare --public < cirros-0.3.0-x86_64-disk.img
 
 ######################
@@ -496,8 +496,8 @@ metadata_listen = 127.0.0.1
 metadata_listen_port = 8775
 
 # Cinder #
-#volume_api_class=nova.volume.cinder.API
-#osapi_volume_listen_port=5900
+volume_api_class=nova.volume.cinder.API
+osapi_volume_listen_port=5900
 
 # Images
 image_service=nova.image.glance.GlanceImageService

@@ -22,7 +22,7 @@ sudo service open-iscsi start
 
 # Configure Cinder
 # /etc/cinder/api-paste.ini
-sudo sed -i 's/127.0.0.1/${CONTROLLER_HOST}/g' /etc/cinder/api-paste.ini
+sudo sed -i 's/127.0.0.1/172.16.172.200/g' /etc/cinder/api-paste.ini
 sudo sed -i 's/%SERVICE_TENANT_NAME%/service/g' /etc/cinder/api-paste.ini
 sudo sed -i 's/%SERVICE_USER%/cinder/g' /etc/cinder/api-paste.ini
 sudo sed -i 's/%SERVICE_PASSWORD%/cinder/g' /etc/cinder/api-paste.ini
