@@ -27,6 +27,7 @@ sudo sed -i 's/%SERVICE_TENANT_NAME%/service/g' /etc/cinder/api-paste.ini
 sudo sed -i 's/%SERVICE_USER%/cinder/g' /etc/cinder/api-paste.ini
 sudo sed -i 's/%SERVICE_PASSWORD%/cinder/g' /etc/cinder/api-paste.ini
 
+
 # /etc/cinder/cinder.conf
 cat > /etc/cinder/cinder.conf <<EOF
 [DEFAULT]
@@ -39,13 +40,14 @@ volume_group = cinder-volumes
 verbose = True
 auth_strategy = keystone
 #osapi_volume_listen_port=5900
+rabbit_host = ${CONTROLLER_HOST}
 EOF
 
 # Sync DB
 cinder-manage db sync
 
 # Setup loopback FS for iscsi
-dd if=/dev/zero of=cinder-volumes bs=1 count=0 seek=2G
+dd if=/dev/zero of=cinder-volumes bs=1 count=0 seek=5G
 losetup /dev/loop2 cinder-volumes
 mkfs.xfs -i size=1024 /dev/loop2
 pvcreate /dev/loop2

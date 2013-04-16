@@ -1,1 +1,1 @@
-vagrant destroy -f; date >> log; vagrant up; date >> log; echo "done"
+vagrant destroy -f; vagrant up --provider=vmware_fusion; echo "done"
