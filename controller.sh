@@ -291,7 +291,8 @@ export OS_AUTH_URL=http://${MY_IP}:5000/v2.0/
 export OS_NO_CACHE=1
 
 sudo apt-get -y install wget
-wget http://${PROXY}/cirros-0.3.0-x86_64-disk.img
+#wget http://${PROXY}/cirros-0.3.0-x86_64-disk.img
+wget https://launchpadlibrarian.net/83305348/cirros-0.3.0-x86_64-disk.img
 glance image-create --name='Cirros 0.3' --disk-format=qcow2 --container-format=bare --public < cirros-0.3.0-x86_64-disk.img
 
 ######################

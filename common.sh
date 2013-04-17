@@ -18,7 +18,7 @@ export SERVICE_TOKEN=ADMIN
 export SERVICE_ENDPOINT=http://${ENDPOINT}:35357/v2.0
 export PROXY=10.10.10.110
 # Setup Proxy
-echo 'Acquire::http { Proxy "http://10.10.10.110:3142"; };' | sudo tee /etc/apt/apt.conf.d/01apt-cacher-ng-proxy
+#echo 'Acquire::http { Proxy "http://10.10.10.110:3142"; };' | sudo tee /etc/apt/apt.conf.d/01apt-cacher-ng-proxy
 
 sudo apt-get update
 sudo apt-get install python-software-properties -y
