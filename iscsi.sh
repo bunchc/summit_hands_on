@@ -13,11 +13,7 @@ sudo apt-get install -y linux-headers-`uname -r` build-essential python-mysqldb 
 # Install Cinder Things
 sudo apt-get install -y cinder-api cinder-scheduler cinder-volume open-iscsi python-cinderclient tgt
 
-# Enable!
-sudo sed -i 's/false/true/g' /etc/default/iscsitarget
-
 # Restart services
-sudo service iscsitarget start
 sudo service open-iscsi start
 
 # Configure Cinder
