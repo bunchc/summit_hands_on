@@ -155,7 +155,7 @@ keystone endpoint-create --region RegionOne --service_id $KEYSTONE_SERVICE_ID --
 
 # Cinder Block Storage Service
 CINDER_SERVICE_ID=$(keystone service-list | awk '/\ volume\ / {print $2}')
-CINDER_ENDPOINT="172.16.172.202"
+CINDER_ENDPOINT="10.10.10.202"
 PUBLIC="http://$CINDER_ENDPOINT:8776/v1/%(tenant_id)s"
 ADMIN=$PUBLIC
 INTERNAL=$PUBLIC
@@ -315,13 +315,13 @@ mysql -uroot -p$MYSQL_ROOT_PASS -e "GRANT ALL PRIVILEGES ON quantum.* TO 'quantu
 mysql -uroot -p$MYSQL_ROOT_PASS -e "SET PASSWORD FOR 'quantum'@'%' = PASSWORD('$MYSQL_QUANTUM_PASS');"
 
 # Configure the quantum OVS plugin
-sudo sed -i "s|sql_connection = sqlite:////var/lib/quantum/ovs.sqlite|sql_connection = mysql://quantum:openstack@172.16.172.200/quantum|g"  /etc/quantum/plugins/openvswitch/ovs_quantum_plugin.ini
+sudo sed -i "s|sql_connection = sqlite:////var/lib/quantum/ovs.sqlite|sql_connection = mysql://quantum:openstack@10.10.10.200/quantum|g"  /etc/quantum/plugins/openvswitch/ovs_quantum_plugin.ini
 sudo sed -i 's/# Default: integration_bridge = br-int/integration_bridge = br-int/g' /etc/quantum/plugins/openvswitch/ovs_quantum_plugin.ini
 sudo sed -i 's/# Default: tunnel_bridge = br-tun/tunnel_bridge = br-tun/g' /etc/quantum/plugins/openvswitch/ovs_quantum_plugin.ini
 sudo sed -i 's/# Default: enable_tunneling = False/enable_tunneling = True/g' /etc/quantum/plugins/openvswitch/ovs_quantum_plugin.ini
 sudo sed -i 's/# Example: tenant_network_type = gre/tenant_network_type = gre/g' /etc/quantum/plugins/openvswitch/ovs_quantum_plugin.ini
 sudo sed -i 's/# Example: tunnel_id_ranges = 1:1000/tunnel_id_ranges = 1:1000/g' /etc/quantum/plugins/openvswitch/ovs_quantum_plugin.ini
-sudo sed -i "s/# Default: local_ip =/local_ip = 172.16.172.200/g" /etc/quantum/plugins/openvswitch/ovs_quantum_plugin.ini
+sudo sed -i "s/# Default: local_ip =/local_ip = 10.10.10.200/g" /etc/quantum/plugins/openvswitch/ovs_quantum_plugin.ini
 
 # List the new user and role assigment
 keystone user-list --tenant-id $SERVICE_TENANT_ID
@@ -397,12 +397,12 @@ metadata_proxy_shared_secret = helloOpenStack
 EOF
 
 sudo sed -i 's/# auth_strategy = keystone/auth_strategy = keystone/g' /etc/quantum/quantum.conf
-sudo sed -i 's/# rabbit_host = localhost/rabbit_host = 172.16.172.200/g' /etc/quantum/quantum.conf
-sudo sed -i 's/auth_host = 127.0.0.1/auth_host = 172.16.172.200/g' /etc/quantum/quantum.conf
+sudo sed -i 's/# rabbit_host = localhost/rabbit_host = 10.10.10.200/g' /etc/quantum/quantum.conf
+sudo sed -i 's/auth_host = 127.0.0.1/auth_host = 10.10.10.200/g' /etc/quantum/quantum.conf
 sudo sed -i 's/admin_tenant_name = %SERVICE_TENANT_NAME%/admin_tenant_name = service/g' /etc/quantum/quantum.conf
 sudo sed -i 's/admin_user = %SERVICE_USER%/admin_user = quantum/g' /etc/quantum/quantum.conf
 sudo sed -i 's/admin_password = %SERVICE_PASSWORD%/admin_password = quantum/g' /etc/quantum/quantum.conf
-sudo sed -i 's/bind_host = 0.0.0.0/bind_host = 172.16.172.200/g' /etc/quantum/quantum.conf
+sudo sed -i 's/bind_host = 0.0.0.0/bind_host = 10.10.10.200/g' /etc/quantum/quantum.conf
 
 # Start Open vSwitch
 sudo service openvswitch-switch restart
