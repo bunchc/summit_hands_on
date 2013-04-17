@@ -13,3 +13,4 @@ cd summit_hands_on<br>
 vagrant up<br>
 <br>
 Then follow the siides here: <br>
+http://portal.sliderocket.com/AQXRQ/My-Presentation-3
