@@ -23,7 +23,7 @@ echo "mysql-server-5.5 mysql-server/root_password_again password $MYSQL_ROOT_PAS
 echo "mysql-server-5.5 mysql-server/root_password seen true" | sudo debconf-set-selections
 echo "mysql-server-5.5 mysql-server/root_password_again seen true" | sudo debconf-set-selections
 
-sudo apt-get -y install mysql-server python-mysqldb
+sudo apt-get -y install mysql-server python-mysqldb python-cinderclient
 
 sudo sed -i "s/^bind\-address.*/bind-address = 0.0.0.0/g" /etc/mysql/my.cnf
 sudo sed -i "s/^#max_connections.*/max_connections = 512/g" /etc/mysql/my.cnf
@@ -496,8 +496,10 @@ metadata_listen = 127.0.0.1
 metadata_listen_port = 8775
 
 # Cinder #
+volume_driver=nova.volume.driver.ISCSIDriver
+enabled_apis=ec2,osapi_compute,metadata
 volume_api_class=nova.volume.cinder.API
-osapi_volume_listen_port=5900
+iscsi_helper=tgtadm
 
 # Images
 image_service=nova.image.glance.GlanceImageService
@@ -505,9 +507,6 @@ glance_api_servers=${GLANCE_HOST}:9292
 
 # Scheduler
 scheduler_default_filters=AllHostsFilter
-
-# Object Storage
-iscsi_helper=tgtadm
 
 # Auth
 auth_strategy=keystone
@@ -583,6 +582,3 @@ export OS_USERNAME=admin
 export OS_PASSWORD=openstack
 export OS_AUTH_URL=http://${MY_IP}:5000/v2.0/
 EOF
-
-
-
